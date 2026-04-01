@@ -32,7 +32,7 @@ const Navbar = () => {
     }}>
       <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 700 }}>
         <BookOpen className="heading" />
-        <span className="heading">QuizPortal</span>
+        <span className="heading">BrainDash</span>
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>

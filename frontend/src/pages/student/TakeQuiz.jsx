@@ -20,77 +20,59 @@ const TakeQuiz = () => {
   const MAX_WARNINGS = 3;
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser || currentUser.role !== 'student') {
-      navigate('/student/login');
-      return;
-    }
-    setUser(currentUser);
+    const fetchQuiz = async () => {
+      const currentUser = getCurrentUser();
+      if (!currentUser || currentUser.role !== 'student') {
+        navigate('/student/login');
+        return;
+      }
+      setUser(currentUser);
 
-    const quizData = getQuizById(id);
-    if (!quizData) {
-      navigate('/student/dashboard');
-      return;
-    }
-
-    // Check if already taken
-    const userResults = getResultsByUser(currentUser.id);
-    if (userResults.find(r => r.quizId === id)) {
-      navigate(`/student/result/${id}`);
-      return;
-    }
-
-    setQuiz(quizData);
-
-    // Auto-Save Restoration Logic
-    const savedState = localStorage.getItem(`quiz_progress_${currentUser.id}_${id}`);
-    if (savedState) {
-      const parsedState = JSON.parse(savedState);
-      setAnswers(parsedState.answers || {});
-      setCurrentQuestion(parsedState.currentQuestion || 0);
-      setTimeLeft(parsedState.timeLeft || quizData.timer * 60);
-      setWarningCount(parsedState.warningCount || 0);
-      setIsRestored(true);
-    } else {
-      setTimeLeft(quizData.timer * 60);
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit(quizData.questions, currentUser.id, quizData.id); // Auto submit
-          return 0;
+      try {
+        const quizData = await getQuizById(id);
+        if (!quizData) {
+          navigate('/student/dashboard');
+          return;
         }
-        return prev - 1;
-      });
-    }, 1000);
 
-    // Initialize Security Features
-    enterFullscreen();
+        // Check if already taken
+        const userResults = await getResultsByUser();
+        if (userResults.find(r => r.quizId === id)) {
+          navigate(`/student/result/${id}`);
+          return;
+        }
 
-    // Proctoring Events
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        handleViolation();
+        setQuiz(quizData);
+
+        // Auto-Save Restoration Logic
+        const savedState = localStorage.getItem(`quiz_progress_${currentUser.id}_${id}`);
+        if (savedState) {
+          const parsedState = JSON.parse(savedState);
+          setAnswers(parsedState.answers || {});
+          setCurrentQuestion(parsedState.currentQuestion || 0);
+          setTimeLeft(parsedState.timeLeft || quizData.timer * 60);
+          setWarningCount(parsedState.warningCount || 0);
+          setIsRestored(true);
+        } else {
+          setTimeLeft(quizData.timer * 60);
+        }
+        
+        enterFullscreen();
+      } catch (err) {
+        console.error('Failed to fetch quiz details:', err);
+        alert(err.message || 'Failed to access quiz. It may be restricted or unavailable.');
+        navigate('/student/dashboard');
       }
     };
 
-    const handleWindowBlur = () => {
-      handleViolation();
-    };
+    fetchQuiz();
 
-    const handleCopyPaste = (e) => {
-      e.preventDefault();
-      alert('Copy/Paste is disabled during the quiz for security reasons.');
-    };
+    // Proctoring Events
+    const handleVisibilityChange = () => { if (document.hidden) handleViolation(); };
+    const handleWindowBlur = () => { handleViolation(); };
+    const handleCopyPaste = (e) => { e.preventDefault(); alert('Copy/Paste is disabled during the quiz for security reasons.'); };
+    const handleContextMenu = (e) => { e.preventDefault(); };
 
-    const handleContextMenu = (e) => {
-      e.preventDefault();
-    };
-
-    // Initialize Security Features
-    enterFullscreen();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
     document.addEventListener('copy', handleCopyPaste);
@@ -98,14 +80,53 @@ const TakeQuiz = () => {
     document.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
-      clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       document.removeEventListener('copy', handleCopyPaste);
       document.removeEventListener('paste', handleCopyPaste);
       document.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [id, navigate]);
+  }, [id, navigate]); // Intentionally omitting handleViolation to avoid deep re-binding issues
+
+  // Handle Timer Countdown safely avoiding stale closures
+  useEffect(() => {
+    if (!quiz || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [quiz, timeLeft]);
+
+  const handleSubmit = useCallback(async (questionsData = quiz.questions, userId = user.id, quizId = quiz._id) => {
+    const timeTaken = (quiz.timer * 60) - timeLeft;
+
+    try {
+      await submitQuizResult({
+        quizId,
+        answers,
+        warnings: warningCount,
+        timeTaken
+      });
+
+      // Clear auto-save data upon successful submission
+      localStorage.removeItem(`quiz_progress_${userId}_${quizId}`);
+
+      if (document.exitFullscreen && document.fullscreenElement) {
+          document.exitFullscreen().catch(err => console.error(err));
+      }
+
+      navigate(`/student/result/${quizId}`);
+    } catch (err) {
+      alert(err.message || 'Failed to submit quiz');
+    }
+  }, [quiz, user, answers, warningCount, navigate, timeLeft]);
+
+  // Handle Auto Submit safely avoiding stale closures
+  useEffect(() => {
+    if (quiz && user && timeLeft === 0) {
+      handleSubmit(quiz.questions, user.id, quiz._id);
+    }
+  }, [timeLeft, quiz, handleSubmit, user]);
 
   // Secondary effect to continuously auto-save progress whenever state changes
   useEffect(() => {
@@ -116,7 +137,7 @@ const TakeQuiz = () => {
         timeLeft,
         warningCount
       };
-      localStorage.setItem(`quiz_progress_${user.id}_${quiz.id}`, JSON.stringify(stateToSave));
+      localStorage.setItem(`quiz_progress_${user.id}_${quiz._id}`, JSON.stringify(stateToSave));
     }
   }, [answers, currentQuestion, timeLeft, warningCount, user, quiz]);
 
@@ -154,35 +175,7 @@ const TakeQuiz = () => {
     setAnswers({ ...answers, [qIndex]: oIndex });
   };
 
-  const handleSubmit = useCallback((questionsData = quiz.questions, userId = user.id, quizId = quiz.id) => {
-    let score = 0;
-    questionsData.forEach((q, index) => {
-      if (answers[index] === q.correctAnswer) {
-        score += 1;
-      }
-    });
 
-    const timeTaken = (quiz.timer * 60) - timeLeft;
-
-    submitQuizResult({
-      userId,
-      quizId,
-      score,
-      total: questionsData.length,
-      answers,
-      warnings: warningCount,
-      timeTaken
-    });
-
-    // Clear auto-save data upon successful submission
-    localStorage.removeItem(`quiz_progress_${userId}_${quizId}`);
-
-    if (document.exitFullscreen && document.fullscreenElement) {
-        document.exitFullscreen().catch(err => console.error(err));
-    }
-
-    navigate(`/student/result/${quizId}`);
-  }, [quiz, user, answers, warningCount, navigate]);
 
   if (!quiz) return <div className="flex-center" style={{ minHeight: '50vh' }}>Loading...</div>;
 

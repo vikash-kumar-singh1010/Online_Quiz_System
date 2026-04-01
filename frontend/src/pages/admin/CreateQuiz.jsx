@@ -11,6 +11,9 @@ const CreateQuiz = () => {
   const [questions, setQuestions] = useState([
     { text: '', options: ['', '', '', ''], correctAnswer: 0 }
   ]);
+  const [isTimeBound, setIsTimeBound] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
@@ -39,7 +42,7 @@ const CreateQuiz = () => {
     setQuestions(newQuestions);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -57,6 +60,15 @@ const CreateQuiz = () => {
         if (q.options.some(opt => !opt.trim())) return setError(`All options for Question ${i + 1} must be filled.`);
     }
 
+    if (isTimeBound) {
+      if (!startTime || !endTime) {
+        return setError('Start time and end time are required when Time Window is enabled.');
+      }
+      if (new Date(startTime) >= new Date(endTime)) {
+        return setError('Start time must be before end time.');
+      }
+    }
+
     const currentUser = getCurrentUser();
     if (!currentUser || currentUser.role !== 'admin') {
       navigate('/admin/login');
@@ -68,11 +80,17 @@ const CreateQuiz = () => {
       description,
       timer: Number(timer),
       questions,
-      createdBy: currentUser.id
-    };
+      isTimeBound,
+      startTime: isTimeBound ? startTime : undefined,
+      endTime: isTimeBound ? endTime : undefined
+    }; // createdBy is handled by backend JWT
 
-    createQuiz(quizData);
-    navigate('/admin/dashboard');
+    try {
+      await createQuiz(quizData);
+      navigate('/admin/dashboard');
+    } catch (err) {
+      setError(err.message || 'Failed to create quiz');
+    }
   };
 
   return (
@@ -110,6 +128,31 @@ const CreateQuiz = () => {
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>Timer (minutes)</label>
               <input type="number" className="glass-input" value={timer} onChange={e => setTimer(e.target.value)} min="1" required style={{ width: '150px' }} />
+            </div>
+
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--surface-border)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', userSelect: 'none', color: '#fff', fontSize: '1rem' }}>
+                <input 
+                  type="checkbox" 
+                  checked={isTimeBound} 
+                  onChange={e => setIsTimeBound(e.target.checked)} 
+                  style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--primary)' }} 
+                />
+                Enable Specific Date & Time Access Window
+              </label>
+              
+              {isTimeBound && (
+                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                     <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>Start Time</label>
+                     <input type="datetime-local" className="glass-input" value={startTime} onChange={e => setStartTime(e.target.value)} required={isTimeBound} style={{ colorScheme: 'dark' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                     <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>End Time</label>
+                     <input type="datetime-local" className="glass-input" value={endTime} onChange={e => setEndTime(e.target.value)} required={isTimeBound} style={{ colorScheme: 'dark' }} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

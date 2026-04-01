@@ -25,7 +25,7 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <Router>
+    <Router basename={process.env.PUBLIC_URL}>
       <div className="App">
         <Navbar />
         <div className="container" style={{ paddingTop: '80px', paddingBottom: '40px' }}>
@@ -48,6 +48,15 @@ function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/create-quiz" element={<CreateQuiz />} />
               <Route path="/admin/quiz-results/:id" element={<AdminQuizResults />} />
+
+              {/* Catch-all route for 404/Debugging */}
+              <Route path="*" element={
+                <div className="flex-center" style={{ flexDirection: 'column', gap: '1rem', minHeight: '60vh' }}>
+                  <h2 className="heading">404 - Page Not Found</h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>The page you are looking for does not exist or has been moved.</p>
+                  <a href={process.env.PUBLIC_URL || "/"} className="btn btn-primary">Go Home</a>
+                </div>
+              } />
             </Routes>
           </Suspense>
         </div>

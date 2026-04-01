@@ -6,7 +6,7 @@ const LandingPage = () => {
   return (
     <div className="animate-fade-in flex-center" style={{ minHeight: 'calc(100vh - 120px)', flexDirection: 'column' }}>
       <div className="text-center mb-8">
-        <h1 className="heading" style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>Welcome to QuizPortal</h1>
+        <h1 className="heading" style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>Welcome to BrainDash</h1>
         <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
           An advanced, dynamic online examination system built for modern education. Choose your portal below to get started.
         </p>

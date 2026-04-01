@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getCurrentUser } from '../../services/authService';
 import { getQuizById, getResultsByQuiz, getResultsByUser } from '../../services/quizService';
-import { getDb } from '../../services/mockDb';
 import { Trophy, ArrowLeft, Target, Award, Zap, Timer, X } from 'lucide-react';
 
 const ResultPage = () => {
@@ -15,44 +14,44 @@ const ResultPage = () => {
   const [scoreboardResults, setScoreboardResults] = useState([]);
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser || currentUser.role !== 'student') {
-      navigate('/student/login');
-      return;
-    }
+    const fetchData = async () => {
+      const currentUser = getCurrentUser();
+      if (!currentUser || currentUser.role !== 'student') {
+        navigate('/student/login');
+        return;
+      }
 
-    const quizData = getQuizById(id);
-    if (!quizData) {
-      navigate('/student/dashboard');
-      return;
-    }
-    setQuiz(quizData);
+      try {
+        const quizData = await getQuizById(id);
+        if (!quizData) {
+          navigate('/student/dashboard');
+          return;
+        }
+        setQuiz(quizData);
 
-    const userResults = getResultsByUser(currentUser.id);
-    const quizResult = userResults.find(r => r.quizId === id);
-    if (!quizResult) {
-      navigate(`/student/quiz/${id}`);
-      return;
-    }
-    setResult(quizResult);
+        const userResults = await getResultsByUser();
+        const quizResult = userResults.find(r => r.quizId === id);
+        if (!quizResult) {
+          navigate(`/student/quiz/${id}`);
+          return;
+        }
+        setResult(quizResult);
 
-    // Calculate rank and scoreboard
-    const allResults = getResultsByQuiz(id);
-    const db = getDb();
-    
-    const enriched = allResults.map((r, index) => {
-      const student = db.users.find(u => u.id === r.userId);
-      return {
-        ...r,
-        userName: student ? student.name : 'Anonymous',
-        rank: index + 1
-      };
-    });
-    
-    setScoreboardResults(enriched.slice(0, 5)); // Show top 5
-    const userRank = enriched.findIndex(r => r.userId === currentUser.id) + 1;
-    setRank(userRank);
+        // Calculate rank and scoreboard
+        const allResults = await getResultsByQuiz(id);
+        
+        // Results are already enriched and sorted by score/time from the backend
+        setScoreboardResults(allResults.slice(0, 5)); // Show top 5
+        const userRank = allResults.findIndex(r => r.userId === currentUser.id) + 1;
+        setRank(userRank);
+        
+      } catch (err) {
+        console.error('Failed to fetch results:', err);
+        navigate('/student/dashboard');
+      }
+    };
 
+    fetchData();
   }, [id, navigate]);
 
   if (!quiz || !result) return <div className="flex-center" style={{ minHeight: '50vh' }}>Loading...</div>;
@@ -80,7 +79,10 @@ const ResultPage = () => {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(12px)',
-          zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+          paddingTop: '4rem',
+          paddingBottom: '2rem',
+          overflowY: 'auto',
           animation: 'fadeIn 0.5s ease'
         }}>
           <div className="glass-panel" style={{ 
@@ -163,10 +165,11 @@ const ResultPage = () => {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <Link to="/student/dashboard" className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%' }}>
+        <Link to="/student/dashboard" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ArrowLeft size={20} />
+          Back to Dashboard
         </Link>
-        <div>
+        <div style={{ marginLeft: '1rem' }}>
           <h1 className="heading" style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Quiz Results</h1>
           <p style={{ color: 'var(--text-secondary)' }}>{quiz.title}</p>
         </div>
@@ -242,6 +245,12 @@ const ResultPage = () => {
             </div>
           );
         })}
+      </div>
+
+      <div style={{ marginTop: '3rem', textAlign: 'center', paddingBottom: '2rem' }}>
+        <Link to="/student/dashboard" className="btn btn-primary" style={{ padding: '1rem 3rem', fontSize: '1.125rem' }}>
+          <ArrowLeft size={20} style={{ marginRight: '0.5rem' }} /> Return to Home Dashboard
+        </Link>
       </div>
     </div>
   );

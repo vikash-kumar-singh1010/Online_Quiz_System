@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getCurrentUser } from '../../services/authService';
 import { getQuizById, getResultsByQuiz } from '../../services/quizService';
-import { getDb } from '../../services/mockDb';
-import { ArrowLeft, Users, TrendingUp, Award, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Users, TrendingUp, Award, ShieldAlert, Search, Calendar } from 'lucide-react';
 
 const AdminQuizResults = () => {
   const { id } = useParams();
@@ -11,47 +10,67 @@ const AdminQuizResults = () => {
   const [quiz, setQuiz] = useState(null);
   const [results, setResults] = useState([]);
   const [stats, setStats] = useState({ average: 0, highest: 0, total: 0 });
+  const [nameFilter, setNameFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser || currentUser.role !== 'admin') {
-      navigate('/admin/login');
-      return;
-    }
-    const quizData = getQuizById(id);
-    if (!quizData || quizData.createdBy !== currentUser.id) {
-      navigate('/admin/dashboard');
-      return;
-    }
-    setQuiz(quizData);
+    const fetchData = async () => {
+      const currentUser = getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        navigate('/admin/login');
+        return;
+      }
 
-    // Fetch and process results
-    const quizResults = getResultsByQuiz(id);
-    const db = getDb();
-    
-    // Enrich results with user names
-    const enrichedResults = quizResults.map(r => {
-      const student = db.users.find(u => u.id === r.userId);
-      return {
-        ...r,
-        userName: student ? student.name : 'Unknown Student',
-        percentage: Math.round((r.score / r.total) * 100)
-      };
-    });
-    
-    setResults(enrichedResults);
+      try {
+        const quizData = await getQuizById(id);
+        if (!quizData || quizData.createdBy !== currentUser.id) {
+          navigate('/admin/dashboard');
+          return;
+        }
+        setQuiz(quizData);
 
-    // Calculate stats
-    if (enrichedResults.length > 0) {
-      const sum = enrichedResults.reduce((acc, curr) => acc + curr.percentage, 0);
-      const avg = Math.round(sum / enrichedResults.length);
-      const highest = Math.max(...enrichedResults.map(r => r.percentage));
-      setStats({ average: avg, highest, total: enrichedResults.length });
-    }
-    
+        // Fetch and process results (already enriched with userName by backend)
+        const quizResults = await getResultsByQuiz(id);
+        
+        const enrichedResults = quizResults.map(r => ({
+          ...r,
+          percentage: Math.round((r.score / r.total) * 100)
+        }));
+        
+        setResults(enrichedResults);
+
+        // Calculate stats
+        if (enrichedResults.length > 0) {
+          const sum = enrichedResults.reduce((acc, curr) => acc + curr.percentage, 0);
+          const avg = Math.round(sum / enrichedResults.length);
+          const highest = Math.max(...enrichedResults.map(r => r.percentage));
+          setStats({ average: avg, highest, total: enrichedResults.length });
+        }
+      } catch (err) {
+        console.error('Failed to load quiz results:', err);
+        navigate('/admin/dashboard');
+      }
+    };
+
+    fetchData();
   }, [id, navigate]);
 
   if (!quiz) return <div className="flex-center" style={{ minHeight: '50vh' }}>Loading...</div>;
+
+  const filteredResults = results.filter(r => {
+    const matchName = r.userName.toLowerCase().includes(nameFilter.toLowerCase());
+    let matchDate = true;
+    if (dateFilter) {
+      // Compare the date strings, ignoring time.
+      const resultDate = new Date(r.createdAt || r.timestamp).toLocaleDateString();
+      const filterDateObj = new Date(dateFilter);
+      // Adjust timezone offset if necessary to match the date picker value strictly,
+      // but standard localDateString comparison usually works.
+      const filterDateStr = filterDateObj.toLocaleDateString();
+      matchDate = resultDate === filterDateStr;
+    }
+    return matchName && matchDate;
+  });
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -98,9 +117,32 @@ const AdminQuizResults = () => {
       </div>
 
       <div className="glass-panel" style={{ padding: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: '#fff' }}>Leaderboard</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <h2 style={{ fontSize: '1.5rem', color: '#fff', margin: 0 }}>Leaderboard</h2>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '0.5rem 1rem', border: '1px solid var(--surface-border)' }}>
+              <Search size={18} color="var(--text-secondary)" style={{ marginRight: '0.5rem' }} />
+              <input 
+                type="text" 
+                placeholder="Filter by name..." 
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '150px' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '0.5rem 1rem', border: '1px solid var(--surface-border)' }}>
+              <Calendar size={18} color="var(--text-secondary)" style={{ marginRight: '0.5rem' }} />
+              <input 
+                type="date" 
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', colorScheme: 'dark' }}
+              />
+            </div>
+          </div>
+        </div>
         
-        {results.length === 0 ? (
+        {filteredResults.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>No students have attempted this quiz yet.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -116,8 +158,8 @@ const AdminQuizResults = () => {
                 </tr>
               </thead>
               <tbody>
-                {results.map((r, index) => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--surface-border)', background: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent' }}>
+                {filteredResults.map((r, index) => (
+                  <tr key={r._id} style={{ borderBottom: '1px solid var(--surface-border)', background: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent' }}>
                     <td style={{ padding: '1rem' }}>
                       {index === 0 && <span style={{ color: 'gold', fontWeight: 700, marginRight: '0.5rem' }}>#1</span>}
                       {index === 1 && <span style={{ color: 'silver', fontWeight: 700, marginRight: '0.5rem' }}>#2</span>}
@@ -147,7 +189,7 @@ const AdminQuizResults = () => {
                       )}
                     </td>
                     <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                      {new Date(r.timestamp).toLocaleString()}
+                      {new Date(r.createdAt || r.timestamp).toLocaleString()}
                     </td>
                   </tr>
                 ))}

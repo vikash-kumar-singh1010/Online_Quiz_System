@@ -13,48 +13,70 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser || currentUser.role !== 'admin') {
-      navigate('/admin/login');
-      return;
-    }
-    setUser(currentUser);
-    
-    // Fetch quizzes and calculate stats
-    const allQuizzes = getQuizzes().filter(q => q.createdBy === currentUser.id);
-    setQuizzes(allQuizzes);
-
-    const cData = [];
-    let totalAttempts = 0;
-    
-    allQuizzes.forEach(quiz => {
-      const results = getResultsByQuiz(quiz.id);
-      totalAttempts += results.length;
-      
-      let avgScore = 0;
-      if (results.length > 0) {
-         const sum = results.reduce((acc, r) => acc + (r.score / r.total) * 100, 0);
-         avgScore = Math.round(sum / results.length);
+    const fetchData = async () => {
+      const currentUser = getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        navigate('/admin/login');
+        return;
       }
+      setUser(currentUser);
       
-      cData.push({
-        name: quiz.title.length > 15 ? quiz.title.substring(0, 15) + '...' : quiz.title,
-        avgScore: avgScore,
-        attempts: results.length
-      });
-    });
-    
-    setChartData(cData);
+      try {
+        // Fetch quizzes and calculate stats
+        // Endpoint returns only quizzes created by this admin due to backend logic
+        const allQuizzes = await getQuizzes();
+        setQuizzes(allQuizzes);
 
-    // Mock trend data based on total attempts for visual effect
-    setTrendData([
-      { day: 'Mon', attempts: Math.floor(totalAttempts * 0.1) },
-      { day: 'Tue', attempts: Math.floor(totalAttempts * 0.15) },
-      { day: 'Wed', attempts: Math.floor(totalAttempts * 0.25) },
-      { day: 'Thu', attempts: Math.floor(totalAttempts * 0.3) },
-      { day: 'Fri', attempts: totalAttempts }
-    ]);
+        const cData = [];
+        const allAdminResults = [];
+        
+        // Fetch results for each quiz
+        for (const quiz of allQuizzes) {
+          const results = await getResultsByQuiz(quiz._id);
+          allAdminResults.push(...results);
+          
+          let avgScore = 0;
+          if (results.length > 0) {
+             const sum = results.reduce((acc, r) => acc + (r.score / r.total) * 100, 0);
+             avgScore = Math.round(sum / results.length);
+          }
+          
+          cData.push({
+            name: quiz.title.length > 15 ? quiz.title.substring(0, 15) + '...' : quiz.title,
+            avgScore: avgScore,
+            attempts: results.length
+          });
+        }
+        
+        setChartData(cData);
 
+        // Process real trend data (Last 7 Days)
+        const last7Days = [...Array(7)].map((_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - (6 - i));
+          return d;
+        });
+
+        const newTrendData = last7Days.map(date => {
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+          const startOfDay = new Date(date).setHours(0, 0, 0, 0);
+          const endOfDay = new Date(date).setHours(23, 59, 59, 999);
+          
+          const attemptsThatDay = allAdminResults.filter(r => {
+             const rt = new Date(r.createdAt).getTime();
+             return rt >= startOfDay && rt <= endOfDay;
+          }).length;
+
+          return { day: dayName, attempts: attemptsThatDay };
+        });
+
+        setTrendData(newTrendData);
+      } catch (err) {
+        console.error('Failed to fetch admin stats:', err);
+      }
+    };
+
+    fetchData();
   }, [navigate]);
 
   if (!user) return null;
@@ -134,7 +156,7 @@ const AdminDashboard = () => {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {quizzes.map((quiz) => (
-            <div key={quiz.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+            <div key={quiz._id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{quiz.title}</h3>
                 <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
@@ -157,7 +179,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <Link to={`/admin/quiz-results/${quiz.id}`} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Link to={`/admin/quiz-results/${quiz._id}`} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'space-between' }}>
                 View Results
                 <ChevronRight size={18} />
               </Link>

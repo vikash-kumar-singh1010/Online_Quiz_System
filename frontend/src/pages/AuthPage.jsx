@@ -14,21 +14,25 @@ const AuthPage = ({ role, mode }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    let result;
-    if (isLogin) {
-      result = login(formData.email, formData.password, role);
-    } else {
-      result = signup(formData.name, formData.email, formData.password, role);
-    }
+    try {
+      let result;
+      if (isLogin) {
+        result = await login(formData.email, formData.password, role);
+      } else {
+        result = await signup(formData.name, formData.email, formData.password, role);
+      }
 
-    if (result.success) {
-      navigate(`/${role}/dashboard`);
-    } else {
-      setError(result.message);
+      if (result.success) {
+        navigate(`/${role}/dashboard`);
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred during authentication.');
     }
   };
 
