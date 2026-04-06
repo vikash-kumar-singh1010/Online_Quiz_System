@@ -1,0 +1,15 @@
+{
+  "name": "quiz-portal-root",
+  "version": "1.0.0",
+  "description": "Root package for running frontend and backend concurrently",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install --prefix backend && npm install --prefix frontend",
+    "frontend": "npm start --prefix frontend",
+    "backend": "npm run dev --prefix backend",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

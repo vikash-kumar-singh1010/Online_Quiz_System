@@ -4,7 +4,7 @@ import { LogOut, BookOpen, UserCircle } from 'lucide-react';
 import { getCurrentUser, logout } from '../services/authService';
 
 const Navbar = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getCurrentUser);
   const navigate = useNavigate();
   const location = useLocation();
 
