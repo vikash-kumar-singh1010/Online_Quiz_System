@@ -137,7 +137,6 @@ const StudentDashboard = () => {
             
             let status = hasCompleted ? 'completed' : 'active';
             let upcomingDate = null;
-            let expiredDate = null;
 
             if (!hasCompleted && quiz.isTimeBound) {
               const now = new Date();
@@ -146,7 +145,6 @@ const StudentDashboard = () => {
                 upcomingDate = new Date(quiz.startTime);
               } else if (quiz.endTime && now > new Date(quiz.endTime)) {
                 status = 'expired';
-                expiredDate = new Date(quiz.endTime);
               }
             }
             

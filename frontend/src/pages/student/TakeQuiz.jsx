@@ -86,6 +86,7 @@ const TakeQuiz = () => {
       document.removeEventListener('paste', handleCopyPaste);
       document.removeEventListener('contextmenu', handleContextMenu);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]); // Intentionally omitting handleViolation to avoid deep re-binding issues
 
   // Handle Timer Countdown safely avoiding stale closures
