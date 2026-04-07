@@ -1,0 +1,37 @@
+{
+  "files": {
+    "main.css": "/Online_Quiz_System/static/css/main.a137d5d8.css",
+    "main.js": "/Online_Quiz_System/static/js/main.f555fc27.js",
+    "static/js/684.7681c1dd.chunk.js": "/Online_Quiz_System/static/js/684.7681c1dd.chunk.js",
+    "static/js/41.ac216bc3.chunk.js": "/Online_Quiz_System/static/js/41.ac216bc3.chunk.js",
+    "static/js/698.1464819f.chunk.js": "/Online_Quiz_System/static/js/698.1464819f.chunk.js",
+    "static/js/983.a5e7cc45.chunk.js": "/Online_Quiz_System/static/js/983.a5e7cc45.chunk.js",
+    "static/js/572.798e46e1.chunk.js": "/Online_Quiz_System/static/js/572.798e46e1.chunk.js",
+    "static/js/514.f23b91fd.chunk.js": "/Online_Quiz_System/static/js/514.f23b91fd.chunk.js",
+    "static/js/125.91c593fc.chunk.js": "/Online_Quiz_System/static/js/125.91c593fc.chunk.js",
+    "static/js/640.79f17d62.chunk.js": "/Online_Quiz_System/static/js/640.79f17d62.chunk.js",
+    "static/js/453.64aababc.chunk.js": "/Online_Quiz_System/static/js/453.64aababc.chunk.js",
+    "static/js/252.17e1e14a.chunk.js": "/Online_Quiz_System/static/js/252.17e1e14a.chunk.js",
+    "static/js/980.365c6404.chunk.js": "/Online_Quiz_System/static/js/980.365c6404.chunk.js",
+    "static/js/225.d9fa2b18.chunk.js": "/Online_Quiz_System/static/js/225.d9fa2b18.chunk.js",
+    "index.html": "/Online_Quiz_System/index.html",
+    "main.a137d5d8.css.map": "/Online_Quiz_System/static/css/main.a137d5d8.css.map",
+    "main.f555fc27.js.map": "/Online_Quiz_System/static/js/main.f555fc27.js.map",
+    "684.7681c1dd.chunk.js.map": "/Online_Quiz_System/static/js/684.7681c1dd.chunk.js.map",
+    "41.ac216bc3.chunk.js.map": "/Online_Quiz_System/static/js/41.ac216bc3.chunk.js.map",
+    "698.1464819f.chunk.js.map": "/Online_Quiz_System/static/js/698.1464819f.chunk.js.map",
+    "983.a5e7cc45.chunk.js.map": "/Online_Quiz_System/static/js/983.a5e7cc45.chunk.js.map",
+    "572.798e46e1.chunk.js.map": "/Online_Quiz_System/static/js/572.798e46e1.chunk.js.map",
+    "514.f23b91fd.chunk.js.map": "/Online_Quiz_System/static/js/514.f23b91fd.chunk.js.map",
+    "125.91c593fc.chunk.js.map": "/Online_Quiz_System/static/js/125.91c593fc.chunk.js.map",
+    "640.79f17d62.chunk.js.map": "/Online_Quiz_System/static/js/640.79f17d62.chunk.js.map",
+    "453.64aababc.chunk.js.map": "/Online_Quiz_System/static/js/453.64aababc.chunk.js.map",
+    "252.17e1e14a.chunk.js.map": "/Online_Quiz_System/static/js/252.17e1e14a.chunk.js.map",
+    "980.365c6404.chunk.js.map": "/Online_Quiz_System/static/js/980.365c6404.chunk.js.map",
+    "225.d9fa2b18.chunk.js.map": "/Online_Quiz_System/static/js/225.d9fa2b18.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a137d5d8.css",
+    "static/js/main.f555fc27.js"
+  ]
+}
